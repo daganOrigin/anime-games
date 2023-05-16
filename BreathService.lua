@@ -75,15 +75,15 @@ end
 	instead of using the constant variables, we have to retrieve the player's data and use whatever in there
 ]]
 function Breath:HeartbeatUpdate(dt)
-	for _, subject: subjectType in self.subjects do
+	for player, subject: subjectType in self.subjects do
 		local oxygenLevel = subject.OxygenLevel
 		local state = subject.State
 		if state.Value == States.idle then
 			-- remove remaining oxygen
-			oxygenLevel.Value -= BREATH_OUT_RATE
+			self:AddOxygenLevel(player, -BREATH_OUT_RATE)
 		elseif state.Value == States.isBreathing then
 			-- add oxygen
-			oxygenLevel.Value += BREATH_IN_RATE
+			self:AddOxygenLevel(player, BREATH_IN_RATE)
 		end
 	end
 end
