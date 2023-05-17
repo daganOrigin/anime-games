@@ -6,7 +6,6 @@
 
 type subjectType = {
 	OxygenLevel: NumberValue,
-	OxygenInstance: NumberValue,
 	State: IntValue,
 	Time: number,
 	Locked: boolean,
@@ -100,10 +99,7 @@ end
 function Breath:HeartbeatUpdate(dt)
 	for player, subject: subjectType in self.subjects do
 		local oxygenLevel = subject.OxygenLevel
-		local oxygenInstance = subject.OxygenInstance
 		local state = subject.State
-		
-		oxygenInstance.Value = oxygenLevel.Value
 		
 		if subject.Locked == true and tick() - subject.Time < LOCK_COOLDOWN then
 			continue
@@ -129,7 +125,6 @@ function Breath:Init()
 		if not self.subjects[Player] then
 			self.subjects[Player] = {
 				OxygenLevel = Instance.new("NumberValue"),
-				OxygenInstance = Instance.new("NumberValue"),
 				State = Instance.new("IntValue"),
 				Locked = false,
 				Time = tick(),
@@ -137,7 +132,7 @@ function Breath:Init()
 			
 			local subject = self.subjects[Player]
 			
-			local Oxygen = subject.OxygenInstance
+			local Oxygen = subject.OxygenLevel
 			Oxygen.Name = "Oxygen"
 			Oxygen.Parent = Player
 		end
