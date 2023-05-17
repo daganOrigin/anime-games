@@ -1,29 +1,27 @@
 --[[
-
 	A service to work with the "breathing" mechanic in other scripts
 	
-	 ::: this service provides a basic state handling to prevent other scripted-events from overlapping (will get removed at some point)
-	
+	by blisson
 ]]
 
 type subjectType = {
 	OxygenLevel: NumberValue,
+	OxygenInstance: NumberValue,
 	State: IntValue,
+	Time: number,
+	Locked: boolean,
 }
 
-local BREATH_IN_RATE = 1
-local BREATH_OUT_RATE = 3
-
+local BREATH_IN_RATE = 0.5
+local BREATH_OUT_RATE = 0.3
+local LOCK_COOLDOWN = 0.3
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DataManager = require(game.ServerScriptService.Shared.DataManager)
+local Net = require(ReplicatedStorage.RbxUtil.Net)
 
-local Remotes = ReplicatedStorage.Remotes
-local BreathRemote = Remotes.Breath
-
--- this service already has a state machine, but it's bound to change once we make a universal one to handle all the states
 local States = {
 	idle = 0,
 	isBreathing = 1,
@@ -33,9 +31,24 @@ local Breath = {
 	subjects = {},
 }
 
+--[[
+	will stop breathing from changing.
+	this is called after a skill is used.
+	meant to prevent the player from quickly spamming skills by not letting go of the charge key.
+	before the lock was implemented you could go from 50 oxygen to 60-70 too quickly.
+	lock is unlocked automatically after the cooldown expires.
+	you can make use of "forceChangeBool" if you want to bypass the lock.
+]]
+function Breath:lock(player, forceChangeBool: boolean?)
+	local subject: subjectType = self.subjects[player]
+	if subject ~= nil then
+		subject.Locked = forceChangeBool or true
+	end
+end
+
 function Breath:AddOxygenLevel(player: Player, amount: number)
-	if not player or not player:IsA("Player") then
-		warn("Invalid player object")
+	if not player or typeof(player) ~= "Instance" or not player:IsA("Player") then
+		warn("Invalid Player Object")
 		return 0
 	end
 	local subject: subjectType = self.subjects[player]
@@ -54,9 +67,9 @@ function Breath:AddOxygenLevel(player: Player, amount: number)
 	end
 end
 
-function Breath:GetPreciseOxygenLevel(player: Player): number
-	if not player or not player:IsA("Player") then
-		warn("Invalid player object")
+function Breath:GetOxygenLevel(player: Player): number
+	if not player or typeof(player) ~= "Instance" or not player:IsA("Player") then
+		warn("Invalid Player Object")
 		return 0
 	end
 	local subject: subjectType = self.subjects[player]
@@ -66,18 +79,39 @@ function Breath:GetPreciseOxygenLevel(player: Player): number
 	return 0
 end
 
-function Breath:GetOxygenLevel(player: Player): number
-	return math.round(self:GetPreciseOxygenLevel(player))
-end
-
 --[[
 	if there is some sort of breathing mastery that makes breathing faster, this is where we add changes
 	instead of using the constant variables, we have to retrieve the player's data and use whatever in there
 ]]
+
+--[[
+	this could be a better replacement for "lock"
+	it's an attempt to know if the player used a skill based on timing and other variables
+	
+	local lastOxygenLevel = 100
+	local currentOxygenLevel = 50
+	
+	-- player most likely used a skill
+	if currentOxygenLevel/lastOxygenLevel < 0.5 and timeStamp < 0.1 then
+		-- add skill_use delay here
+	end
+]]
+
 function Breath:HeartbeatUpdate(dt)
 	for player, subject: subjectType in self.subjects do
 		local oxygenLevel = subject.OxygenLevel
+		local oxygenInstance = subject.OxygenInstance
 		local state = subject.State
+		
+		oxygenInstance.Value = oxygenLevel.Value
+		
+		if subject.Locked == true and tick() - subject.Time < LOCK_COOLDOWN then
+			continue
+		end
+		
+		subject.Locked = false
+		subject.Time = tick()
+		
 		if state.Value == States.idle then
 			-- remove remaining oxygen
 			self:AddOxygenLevel(player, -BREATH_OUT_RATE)
@@ -85,6 +119,8 @@ function Breath:HeartbeatUpdate(dt)
 			-- add oxygen
 			self:AddOxygenLevel(player, BREATH_IN_RATE)
 		end
+		
+		print(self:GetOxygenLevel(player))
 	end
 end
 
@@ -93,8 +129,17 @@ function Breath:Init()
 		if not self.subjects[Player] then
 			self.subjects[Player] = {
 				OxygenLevel = Instance.new("NumberValue"),
+				OxygenInstance = Instance.new("NumberValue"),
 				State = Instance.new("IntValue"),
+				Locked = false,
+				Time = tick(),
 			}
+			
+			local subject = self.subjects[Player]
+			
+			local Oxygen = subject.OxygenInstance
+			Oxygen.Name = "Oxygen"
+			Oxygen.Parent = Player
 		end
 	end
 	
@@ -111,11 +156,7 @@ function Breath:Init()
 		self:HeartbeatUpdate(dt)
 	end)
 	
-	--[[
-		when InputBegan trigger == true
-		when InputEnded trigger == false
-	]]
-	BreathRemote.OnServerEvent:Connect(function(player, trigger)
+	Net:Connect("Breath", function(player, trigger)
 		local subject: subjectType = self.subjects[player]
 		if subject ~= nil then
 			local state = subject.State
@@ -125,6 +166,20 @@ function Breath:Init()
 				state.Value = States.idle
 			end
 		end
+	end)
+	
+	local SkillUsed = Net:RemoteEvent("SkillUsed")
+	
+	Net:Connect("TakeSomeBreath", function(player)
+		self:AddOxygenLevel(player, -30)
+		SkillUsed:FireClient(player)
+		Breath:lock(player)
+	end)
+	
+	Net:Connect("TakeMassiveBreath", function(player)
+		self:AddOxygenLevel(player, -50)
+		SkillUsed:FireClient(player)
+		Breath:lock(player)
 	end)
 end
 
