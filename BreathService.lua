@@ -1,5 +1,5 @@
 --[[
-	A service to work with the "breathing" mechanic in other scripts
+	This is pretty much a server-side 'charge' bar called 'breathing' for a demon slayer game.
 	
 	by dagan
 ]]
