@@ -21,7 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataManager = require(game.ServerScriptService.Shared.DataManager)
 local Net = require(ReplicatedStorage.RbxUtil.Net)
 
-local States = {
+local EnumList = {
 	idle = 0,
 	isBreathing = 1,
 }
@@ -108,10 +108,10 @@ function Breath:HeartbeatUpdate(dt)
 		subject.Locked = false
 		subject.Time = tick()
 		
-		if state.Value == States.idle then
+		if state.Value == EnumList.idle then
 			-- remove remaining oxygen
 			self:AddOxygenLevel(player, -BREATH_OUT_RATE)
-		elseif state.Value == States.isBreathing then
+		elseif state.Value == EnumList.isBreathing then
 			-- add oxygen
 			self:AddOxygenLevel(player, BREATH_IN_RATE)
 		end
@@ -156,9 +156,9 @@ function Breath:Init()
 		if subject ~= nil then
 			local state = subject.State
 			if trigger then
-				state.Value = States.isBreathing
+				state.Value = EnumList.isBreathing
 			else
-				state.Value = States.idle
+				state.Value = EnumList.idle
 			end
 		end
 	end)
