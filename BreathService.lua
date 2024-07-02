@@ -1,7 +1,7 @@
 --[[
 	A service to work with the "breathing" mechanic in other scripts
 	
-	by blisson
+	by dagan
 ]]
 
 type subjectType = {
