@@ -69,11 +69,15 @@ end
 
 function CrowdControl:remove(cc_type: string)
 	if self:has(cc_type) then
-		self.activeCC[cc_type] = {
-			value = false,
-			timestamp = 0,
-			duration = 0,
-		}
+		self.activeCC[cc_type] = nil
+
+		--[[ old
+			self.activeCC[cc_type] = {
+				value = false,
+				timestamp = 0,
+				duration = 0,
+			}
+		]]
 		self:_resetEffect(cc_type)
 	end
 end
