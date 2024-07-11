@@ -121,6 +121,8 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 				end)
 			)
 
+			
+			-- while once is pretty good, only the button that was actually clicked would fire and disconnect itself, hence why we still have to wrap and disconnect them manually.
 			table.insert(choiceConnections, choice.Activated:Once(function(input: InputObject, clickCount: number)
 				local mouseClick = input.UserInputType == Enum.UserInputType.MouseButton1
 				local touchTap = input.UserInputType == Enum.UserInputType.Touch
