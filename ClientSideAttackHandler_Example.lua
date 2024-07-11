@@ -55,6 +55,7 @@ function MouseButton1:playAttackSequence()
 	
 	getPlayerVariables().character:SetAttribute("activeAttackSequence", attackSequence)
 	
+	-- ew
 	animHandler():play("swing" .. attackSequence, 0.2)
 	
 	print(attackSequence)
@@ -63,21 +64,21 @@ function MouseButton1:playAttackSequence()
 end
 
 function MouseButton1:_tryReportEnemy()
-	local now = workspace:GetServerTimeNow()
+	--local now = workspace:GetServerTimeNow()
 	
-	local playerVariables: getPlayerVariables.PlayerVariables = getPlayerVariables()
-	local rootPart = playerVariables.rootPart
+	--local playerVariables: getPlayerVariables.PlayerVariables = getPlayerVariables()
+	--local rootPart = playerVariables.rootPart
 	
-	local params = RaycastParams.new()
-	params.FilterDescendantsInstances = {playerVariables.character}
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.IgnoreWater = true
+	--local params = RaycastParams.new()
+	--params.FilterDescendantsInstances = {playerVariables.character}
+	--params.FilterType = Enum.RaycastFilterType.Exclude
+	--params.IgnoreWater = true
 	
-	local origin = rootPart.CFrame
-	local direction = rootPart.CFrame.LookVector * 2
+	--local origin = rootPart.CFrame
+	--local direction = rootPart.CFrame.LookVector * 2
 	
 	-- to sync with attack animation (consider using GetMarkerReachedSignal over task.delay in the future)
-	task.delay(0.3, function()
+	task.delay(0.25, function()
 		HitboxHandler():HitStart(0.5)
 	end)
 end
@@ -86,6 +87,7 @@ function MouseButton1:canAttack()
 	local now = os.clock()
 	
 	-- this also works to detect if the player is alive
+	-- edit: new module is better
 	if not getPlayerVariables() then
 		return false
 	end
@@ -98,6 +100,10 @@ function MouseButton1:canAttack()
 		return false
 	end
 	
+	-- old crowd control module
+	-- replaced by new state manager:
+	-- ```if invalidStates[StateManager:get()] then return end```
+
 	if
 		ccHandler():has("attacking")
 		or ccHandler():has("stun")
@@ -117,6 +123,9 @@ function MouseButton1:tryAttack()
 		return
 	end
 	
+	-- new state manager simply does:
+	-- StateManager:changeState("attack", attackDuration)
+
 	ccHandler():give("slow", attackDuration)
 	ccHandler():give("attacking", 1)
 	
@@ -146,12 +155,14 @@ function MouseButton1:init()
 	
 end
 
+-- ew, this has been changed
 function MouseButton1:onInputBegan(inputState: Enum.UserInputState)
 	if inputState == Enum.UserInputState.Begin then
 		self:tryAttack()
 	end
 end
 
+-- wtf
 MouseButton1:init()
 
 return MouseButton1
