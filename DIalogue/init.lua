@@ -1,7 +1,4 @@
 --!strict
-
--- scripted by dagan
--- (this is overcomplicated from start because dialogue will be expanded with more features either way, and this can also be useful for my games)
 -- 7/11/2024
 
 local Types = require(script.Types)
