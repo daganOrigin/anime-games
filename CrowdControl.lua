@@ -8,6 +8,8 @@
 	by dagan
 ]]
 
+-- old code
+
 type cc_target = {
 	root: BasePart,
 	hum: Humanoid,
