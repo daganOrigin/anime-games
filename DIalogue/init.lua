@@ -10,6 +10,7 @@ local disconnectAndClear = require(script.Parent.Parent.Utility.disconnectAndCle
 
 local cam = workspace.CurrentCamera
 
+-- todo: sound pool to prevent instantiation spam (either way, it won't impact performance heavily)
 local function playsound()
 	local sfx = script.click:Clone()
 	sfx.Playing = true
@@ -146,8 +147,8 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 
 	function dialogue.clearAllChoices()
 		for _, choice in coreGui.choicesBox:GetChildren() do
-			local isChoice = choice:GetAttribute("choice")
-			if isChoice ~= nil and isChoice then
+			local isChoice = choice:GetAttribute("choice") -- this way i can easily avoid destroying the 'choice template' and other elements such as UIListLayout or future elements
+			if isChoice then
 				choice:Destroy()
 			end
 		end
@@ -157,7 +158,7 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 	function dialogue.talk(self)
 		local branch = tree[self.speechIndex]
 
-		--if not tree[self.speechIndex + 1] then
+		--if not tree[self.speechIndex] then
 		--	-- dialogue has ended
 		--	task.delay(1, function()
 		--		self:hide()
@@ -217,7 +218,7 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 	--	self:talk()
 	--end
 
-	-- this will be called for proxmity prompts out of render because of streaming enabled
+	-- this is called for proxmity prompts out of render because of streaming enabled
 	-- but once the prompt is within render again, the whole dialogue tree is recreated
 	function dialogue.destroy(self)
 		self:hide()
