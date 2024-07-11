@@ -1,6 +1,6 @@
 --[[
 
-    this is a fly system i scripted for a comm that didn't work out because of the lack for mobile support.
+    this is a plug-in and play fly system i scripted for a comm that didn't work out because of the lack for mobile support.
 
 --]]
 
