@@ -70,6 +70,11 @@ TeleportSignal:Connect(function(collider: BasePart, totalRequests: number)
 			textLabel.Visible = false
 		end
 		
+		for _, player in teleportCollision[collider] do
+			Network:FireClientUnreliable(player, "ToggleControls", false)
+			Network:FireClientUnreliable(player, "ToggleExitButton", false)
+		end
+		
 		updateColliderRequestAmount(collider)
 		
 		if #teleportCollision[collider] >= totalRequestsAllowed then
@@ -78,10 +83,6 @@ TeleportSignal:Connect(function(collider: BasePart, totalRequests: number)
 				collider:GetAttribute("GameModePlace"),
 				teleportCollision[collider]
 			)
-			
-			for _, player in teleportCollision[collider] do
-				Network:FireClient(player, "ToggleControls", false)
-			end
 		end
 	end
 end)
