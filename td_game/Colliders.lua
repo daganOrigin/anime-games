@@ -4,12 +4,9 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 
 local Network = require(ReplicatedStorage.Scripts.Packages.Network)
-local Signal = require(ReplicatedStorage.Scripts.Packages.Signal)
 
 local collided, teleportCollision = {}, {}
 local colliderRequests = {}
-
-local TeleportSignal = Signal.new()
 
 local function getColliderRelativeLabel(labelName: string, collider: BasePart)
 	return collider:FindFirstChild(labelName, true)
@@ -46,11 +43,10 @@ local function safeTeleportPlayers(collider: BasePart, placeId: number, players:
 	updateColliderRequestAmount(collider)
 end
 
-TeleportSignal:Connect(function(collider: BasePart, totalRequests: number)
+local function teleportEvent(collider: BasePart, totalRequests: number)
 	local totalRequestsAllowed = collider:GetAttribute("TotalRequestsAllowed") or 4
 	if totalRequests >= totalRequestsAllowed then
 		local textLabel = getColliderRelativeLabel("countdown", collider)
-		local requests = getColliderRelativeLabel("requests", collider)
 		
 		updateColliderRequestAmount(collider)
 		
@@ -62,7 +58,6 @@ TeleportSignal:Connect(function(collider: BasePart, totalRequests: number)
 				if #teleportCollision[collider] <  totalRequestsAllowed then
 					break
 				end
-				--requests.Text = `{totalRequests}/{totalRequestsAllowed}`
 				textLabel.Text = `{math.round(start - workspace:GetServerTimeNow())}`
 				task.wait()
 			end
@@ -85,7 +80,7 @@ TeleportSignal:Connect(function(collider: BasePart, totalRequests: number)
 			)
 		end
 	end
-end)
+end
 
 for _, collider in CollectionService:GetTagged("Colliders") do
 	if not collider:IsA("BasePart") then return end
@@ -119,9 +114,9 @@ for _, collider in CollectionService:GetTagged("Colliders") do
 			
 			updateColliderRequestAmount(collider)
 			
-			print(colliderRequests)
+			--print(colliderRequests)
 
-			TeleportSignal:Fire(collider, colliderRequests[collider])
+			teleportEvent(collider, colliderRequests[collider])
 		end)
 	end
 end
