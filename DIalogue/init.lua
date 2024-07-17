@@ -1,13 +1,16 @@
 --!strict
+
+-- scripted by dagan
+-- (this is overcomplicated from start because dialogue will be expanded with more features either way, and this can also be useful for my games)
 -- 7/11/2024
 
 local Types = require(script.Types)
 local Settings = require(script.Settings)
 local disconnectAndClear = require(script.Parent.Parent.Utility.disconnectAndClear)
+local Signal = require(script.Parent.Parent.Packages.Signal)
 
 local cam = workspace.CurrentCamera
 
--- todo: sound pool to prevent instantiation spam (either way, it won't impact performance heavily)
 local function playsound()
 	local sfx = script.click:Clone()
 	sfx.Playing = true
@@ -28,6 +31,8 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 		totalSpeeches = #tree,
 		talking = false,
 		skipped = false,
+		worldPoint = Vector3.zero, -- not set here
+		onFinished = Signal.new(),
 		_connections = {},
 		_prompt = prompt,
 		isDialogueEnabled = false,
@@ -82,6 +87,7 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 		self._prompt.Enabled = true
 		self.isDialogueEnabled = false
 		coreGui.screenGui.Enabled = false
+		self.onFinished:Fire()
 	end
 
 	function dialogue.displayChoices(self, choices: {Types.Choice})
@@ -118,8 +124,6 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 				end)
 			)
 
-			
-			-- while once is pretty good, only the button that was actually clicked would fire and disconnect itself, hence why we still have to wrap and disconnect them manually.
 			table.insert(choiceConnections, choice.Activated:Once(function(input: InputObject, clickCount: number)
 				local mouseClick = input.UserInputType == Enum.UserInputType.MouseButton1
 				local touchTap = input.UserInputType == Enum.UserInputType.Touch
@@ -129,11 +133,6 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 					self.clearAllChoices()
 
 					self.speechIndex = math.clamp(self.speechIndex + 1, 1, self.totalSpeeches)
-					if self.speechIndex == self.totalSpeeches then
-						task.delay(5, function()
-							self:hide()
-						end)
-					end
 
 					self:talk()
 
@@ -146,8 +145,8 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 
 	function dialogue.clearAllChoices()
 		for _, choice in coreGui.choicesBox:GetChildren() do
-			local isChoice = choice:GetAttribute("choice") -- this way i can easily avoid destroying the 'choice template' and other elements such as UIListLayout or future elements
-			if isChoice then
+			local isChoice = choice:GetAttribute("choice")
+			if isChoice ~= nil and isChoice then
 				choice:Destroy()
 			end
 		end
@@ -157,7 +156,7 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 	function dialogue.talk(self)
 		local branch = tree[self.speechIndex]
 
-		--if not tree[self.speechIndex] then
+		--if not tree[self.speechIndex + 1] then
 		--	-- dialogue has ended
 		--	task.delay(1, function()
 		--		self:hide()
@@ -174,7 +173,7 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 
 		for i = 1, #speech do
 
-			-- play sound every 2 letters to minimize the impact of instantiation
+			-- play sound every 2 letters to reduce the impact of instantiation
 			if i % 2 == 0 then
 				playsound()
 			end
@@ -191,13 +190,21 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 		end
 
 		self.talking = false
-
-		self:displayChoices(branch.choices)
-
 		coreGui.speechBox.MaxVisibleGraphemes = -1
+
+		if self.speechIndex < self.totalSpeeches then
+			self:displayChoices(branch.choices)
+		end
+		
+		if self.speechIndex == self.totalSpeeches then
+			task.delay(2.5, function()
+				if self:isActive() and not self.talking then
+					self:hide()
+				end
+			end)
+		end
 	end
 
-	-- immediately finishes the current speech
 	function dialogue.skip(self)
 		local isTalking = self.talking
 		if isTalking ~= nil and isTalking == true then
@@ -205,21 +212,10 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 		end
 	end
 
-	-- continues to the next speech
-	--function dialogue.next(self)
-	--	self.speechIndex = math.clamp(self.speechIndex + 1, 1, self.totalSpeeches)
-	--	self:talk()
-	--end
-
-	-- returns to the previous speech
-	--function dialogue.prev(self)
-	--	self.speechIndex = math.clamp(self.speechIndex - 1, 1, self.totalSpeeches)
-	--	self:talk()
-	--end
-
-	-- this is called for proxmity prompts out of render because of streaming enabled
+	-- this will be called for proxmity prompts out of render because of streaming enabled
 	-- but once the prompt is within render again, the whole dialogue tree is recreated
 	function dialogue.destroy(self)
+		self.onFinished:DisconnectAll()
 		self:hide()
 		table.clear(self)
 	end
