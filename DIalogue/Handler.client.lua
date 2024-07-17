@@ -1,5 +1,3 @@
--- dagan master
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -11,7 +9,7 @@ local playerGui = player:FindFirstChildOfClass("PlayerGui")
 
 --task.wait(1)
 
----- disable other ui to debug dialogue only
+---- debug
 --for _, v in playerGui:GetChildren() do
 --	if v:IsA("ScreenGui") then
 --		v.Enabled = false
@@ -21,7 +19,6 @@ local playerGui = player:FindFirstChildOfClass("PlayerGui")
 local DialogueV2 = script.DialogueV2
 DialogueV2.Parent = playerGui
 
--- to easily accommodate new guis, the one right now is a placeholder
 local gui = {
 	screenGui = DialogueV2,
 	speechBox = DialogueV2.Background.Speech,
@@ -29,7 +26,6 @@ local gui = {
 	choiceTemplate = DialogueV2.Choices.Template,
 }
 
--- because other devs were changing the properties
 gui.screenGui.ResetOnSpawn = false
 gui.screenGui.Enabled = false
 gui.speechBox.RichText = true
@@ -37,6 +33,7 @@ gui.choiceTemplate.RichText = true
 gui.choiceTemplate.Visible = false
 
 local allDialogues = {}
+local freeRunnerDialogue = nil
 
 local function setupDialogue(prompt: ProximityPrompt)
 	if allDialogues[prompt] then
@@ -62,16 +59,28 @@ local function setupDialogue(prompt: ProximityPrompt)
 
 	local dialogueTree = require(dialogueData)
 	local dialogue = DialogueClass.new(prompt, gui, dialogueTree)
+	dialogue.worldPoint = (prompt.Parent :: BasePart).Position
 
 	allDialogues[prompt] = dialogue
 	
 	--print(allDialogues)
+	
+	dialogue.onFinished:Connect(function()
+		player.Character.Humanoid.JumpPower = game.StarterPlayer.CharacterJumpPower
+		player.Character.Humanoid.JumpHeight = game.StarterPlayer.CharacterJumpHeight
+		player.Character:SetAttribute("dialogue", false)
+		freeRunnerDialogue = nil
+	end)
 
 	prompt.Triggered:Connect(function(player: Player)
 		if dialogue:isActive() then
 			return
 		end
+		player.Character:SetAttribute("dialogue", true) -- erg
+		player.Character.Humanoid.JumpPower = 0
+		player.Character.Humanoid.JumpHeight = 0
 		dialogue:start(cutsceneCallback)
+		freeRunnerDialogue = dialogue
 	end)
 end
 
@@ -93,33 +102,19 @@ for _, prompt: ProximityPrompt in CollectionService:GetTagged("DialoguePrompts")
 	setupDialogue(prompt)
 end
 
--- doesn't work properly because each dialogue is using the same gui:
--- what would happen if all dialogue npcs call 'hide()' every 0.3 seconds if you're far from just one of them?
--- the gui just disappears whenever you press play, the gui disappears if you trigger a proximity prompt
-
---while true do
---	task.wait(0.3)
+while task.wait(0.5) do
+	local character =  player.Character
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	
---	print("running")
+	if not humanoid or not humanoid.RootPart then
+		continue
+	end
 	
-	
---	if not player.Character then
---		continue
---	end
-	
---	local basePart = player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
-
---	if not basePart then
---		continue
---	end
-	
---	local basePartPoint: Vector3 = basePart.Position
-
---	for _, class in allDialogues do
---		local dialoguePoint = (class._prompt.Parent :: BasePart).Position
---		local distance: number = (basePartPoint - dialoguePoint).Magnitude
---		if distance > 10 then
---			class:hide()
---		end
---	end
---end
+	if freeRunnerDialogue and freeRunnerDialogue:isActive() then
+		local myPoint = humanoid.RootPart.Position
+		local dist = (myPoint - freeRunnerDialogue.worldPoint).Magnitude
+		if dist > 10 or humanoid.Health <= 0 then
+			freeRunnerDialogue:hide()
+		end
+	end
+end
