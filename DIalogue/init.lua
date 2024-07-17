@@ -155,15 +155,6 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 	-- animates the speech box
 	function dialogue.talk(self)
 		local branch = tree[self.speechIndex]
-
-		--if not tree[self.speechIndex + 1] then
-		--	-- dialogue has ended
-		--	task.delay(1, function()
-		--		self:hide()
-		--	end)
-		--	return
-		--end
-
 		local speech = removeTags(branch.speech)
 
 		self.talking = true
@@ -172,7 +163,6 @@ local function createDialogue(prompt: ProximityPrompt, coreGui: Types.UIElements
 		coreGui.speechBox.MaxVisibleGraphemes = 0
 
 		for i = 1, #speech do
-
 			-- play sound every 2 letters to reduce the impact of instantiation
 			if i % 2 == 0 then
 				playsound()
