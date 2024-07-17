@@ -1,5 +1,9 @@
 local Players = game:GetService("Players")
 
+-- to use workspace:getservertimenow() as the time function do:
+-- local timeFunction = function() return workspace:GetServerTime() end
+-- createRate(timeFunction, ...)
+
 local function createRate(timeFunction: () -> number, rates: {[any]: number}, ignoreFirstRate: boolean?)	
 	local throttle = {}
 
